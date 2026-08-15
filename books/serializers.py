@@ -1,7 +1,7 @@
 from django.db.models import Avg
 from rest_framework import serializers
 
-from .models import Book, Bookmark, Genre, Rating
+from .models import Book, Bookmark, Genre, GoodreadsTasteProfile, Rating
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -118,3 +118,15 @@ class ChatRequestSerializer(serializers.Serializer):
     message = serializers.CharField(max_length=2000)
     history = ChatMessageSerializer(many=True, required=False, default=list)
     limit = serializers.IntegerField(required=False, min_value=1, max_value=8, default=4)
+
+
+class GoodreadsTasteProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GoodreadsTasteProfile
+        fields = (
+            'favorite_authors',
+            'favorite_shelves',
+            'rating_summary',
+            'imported_rows',
+            'updated_at',
+        )

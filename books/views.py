@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .chat import chat_reply
-from .models import Book, Bookmark, Genre, Rating
+from .goodreads_import import parse_goodreads_csv
+from .models import Book, Bookmark, Genre, GoodreadsImport, GoodreadsTasteProfile, Rating
 from .recommendations import recommend_books
 from .serializers import (
     BookDetailSerializer,
@@ -13,6 +14,7 @@ from .serializers import (
     BookmarkSerializer,
     ChatRequestSerializer,
     GenreSerializer,
+    GoodreadsTasteProfileSerializer,
     RatingSerializer,
     RecommendRequestSerializer,
 )
@@ -124,7 +126,7 @@ class StatsView(APIView):
 
 
 class ChatView(APIView):
-    """ChatGPT-style conversational book recommendations."""
+    """ChatGPT-style conversational book recommendations (Gemini + Open Library)."""
 
     permission_classes = [permissions.AllowAny]
 
@@ -140,10 +142,64 @@ class ChatView(APIView):
         )
         return Response({
             'reply': result['reply'],
-            'books': BookListSerializer(
-                result.get('books') or [],
-                many=True,
-                context={'request': request},
-            ).data,
+            'books': result.get('books') or [],
         })
+
+
+class GoodreadsImportView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        profile = GoodreadsTasteProfile.objects.filter(user=request.user).first()
+        if not profile:
+            return Response({'imported': False})
+        return Response({
+            'imported': True,
+            'profile': GoodreadsTasteProfileSerializer(profile).data,
+        })
+
+    def post(self, request):
+        uploaded_file = request.FILES.get('file')
+        if not uploaded_file:
+            return Response(
+                {'detail': 'Choose your Goodreads Library Export CSV first.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            parsed = parse_goodreads_csv(uploaded_file)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        profile, _ = GoodreadsTasteProfile.objects.update_or_create(
+            user=request.user,
+            defaults={
+                'favorite_authors': parsed['favorite_authors'],
+                'favorite_shelves': parsed['favorite_shelves'],
+                'liked_books': parsed['liked_books'],
+                'disliked_books': parsed['disliked_books'],
+                'reading_history': parsed['reading_history'],
+                'rating_summary': parsed['rating_summary'],
+                'imported_rows': parsed['valid_rows'],
+            },
+        )
+        GoodreadsImport.objects.create(
+            user=request.user,
+            filename=uploaded_file.name[:255],
+            imported_rows=parsed['total_rows'],
+            valid_rows=parsed['valid_rows'],
+        )
+        return Response({
+            'imported': True,
+            'profile': GoodreadsTasteProfileSerializer(profile).data,
+            'summary': {
+                'books_imported': parsed['valid_rows'],
+                'top_authors': [item['name'] for item in parsed['favorite_authors'][:3]],
+                'top_shelves': [item['name'] for item in parsed['favorite_shelves'][:3]],
+            },
+        }, status=status.HTTP_201_CREATED)
+
+    def delete(self, request):
+        GoodreadsTasteProfile.objects.filter(user=request.user).delete()
+        GoodreadsImport.objects.filter(user=request.user).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 

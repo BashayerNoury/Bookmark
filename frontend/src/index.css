@@ -1,37 +1,47 @@
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --bg: #ffffff;
-  --panel: #f7f6f3;
-  --ink: #37352f;
-  --muted: #787774;
-  --line: #e9e9e7;
-  --hover: #efefed;
-  --card: #ffffff;
-  --bubble: #f1f1ef;
+  --desk: #d9cfc2;
+  --desk-glow: #efe6d8;
+  --bg: #fbf7f0;
+  --page: #fffdf8;
+  --panel: #f4eee4;
+  --ink: #2c241c;
+  --muted: #7a7167;
+  --line: #e4d9cb;
+  --hover: #efe6d8;
+  --card: #fffdf8;
+  --bubble: #f1e9dd;
   --accent: #800020;
   --accent-hover: #5c0018;
   --accent-soft: #f5e8ec;
-  --dock-fade: linear-gradient(to top, #ffffff 55%, #ffffff00);
-  --composer-shadow: 0 0 0 1px #0000000d, 0 4px 24px #0000000f;
+  --spine: #c9b8a4;
+  --shadow: 0 24px 60px rgba(60, 40, 20, 0.18);
+  --dock-fade: linear-gradient(to top, #fffdf8 55%, #fffdf800);
+  --composer-shadow: 0 0 0 1px #0000000d, 0 8px 28px rgba(60, 40, 20, 0.08);
   --error-bg: #f5e8ec;
   --error-ink: #800020;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #212121;
-  --panel: #171717;
-  --ink: #ececec;
-  --muted: #9b9a97;
-  --line: #2f2f2f;
-  --hover: #2a2a2a;
-  --card: #2a2a2a;
-  --bubble: #2f2f2f;
+  --desk: #14110f;
+  --desk-glow: #2a221c;
+  --bg: #1b1714;
+  --page: #221e1a;
+  --panel: #1a1613;
+  --ink: #f2ebe3;
+  --muted: #a89f94;
+  --line: #3a322b;
+  --hover: #2c261f;
+  --card: #2a241f;
+  --bubble: #322b24;
   --accent: #a33a52;
   --accent-hover: #c24b65;
   --accent-soft: #3a1a22;
-  --dock-fade: linear-gradient(to top, #212121 55%, #21212100);
+  --spine: #0f0d0b;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --dock-fade: linear-gradient(to top, #221e1a 55%, #221e1a00);
   --composer-shadow: 0 0 0 1px #ffffff14, 0 8px 32px #00000066;
   --error-bg: #3a1a22;
   --error-ink: #e8b4bf;
@@ -47,19 +57,21 @@ html, body, #root {
 body {
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   color: var(--ink);
-  background: var(--bg);
+  background:
+    radial-gradient(ellipse at 50% 0%, var(--desk-glow), transparent 55%),
+    var(--desk);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: var(--accent);
-  color: #ffffff;
+  background: color-mix(in srgb, var(--accent) 32%, transparent);
+  color: var(--ink);
 }
 
 ::-moz-selection {
-  background: var(--accent);
-  color: #ffffff;
+  background: color-mix(in srgb, var(--accent) 32%, transparent);
+  color: var(--ink);
 }
 
 button, textarea { font: inherit; color: inherit; }
@@ -68,30 +80,93 @@ button { cursor: pointer; }
 .chat-app {
   height: 100%;
   display: grid;
-  grid-template-columns: 260px 1fr;
-  background: var(--bg);
+  place-items: stretch center;
+  padding: 24px;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 920px);
+  gap: 0;
+  max-width: 1240px;
+  margin: 0 auto;
+  align-items: stretch;
+  justify-content: center;
 }
 
 .chat-app.sidebar-closed {
-  grid-template-columns: 0 1fr;
+  grid-template-columns: minmax(0, 920px);
+}
+
+.chat-app.sidebar-closed > .sidebar {
+  display: none;
 }
 
 .sidebar-backdrop {
   display: none;
 }
 
+.chat-app > .sidebar,
+.chat-app > .main {
+  height: min(860px, calc(100vh - 48px));
+}
+
+.sidebar,
+.main {
+  background: var(--page);
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
 .sidebar {
-  background: var(--panel);
-  border-right: 1px solid var(--line);
+  border-radius: 18px 0 0 18px;
+  border-right: 0;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  overflow: hidden;
-  z-index: 20;
+  z-index: 2;
+  background:
+    linear-gradient(90deg, transparent 92%, rgba(0,0,0,0.04)),
+    var(--panel);
+}
+
+.main {
+  border-radius: 0 18px 18px 0;
+  display: flex;
+  flex-direction: column;
+  background:
+    linear-gradient(270deg, transparent 94%, rgba(0,0,0,0.045)),
+    var(--page);
+  z-index: 1;
+}
+
+/* Book spine */
+.sidebar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -10px;
+  width: 20px;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.08),
+    rgba(0,0,0,0.02) 40%,
+    transparent
+  );
+  pointer-events: none;
+  z-index: 3;
+}
+
+.main::before {
+  content: "";
+  position: absolute;
+  inset: 18px 18px 18px auto;
+  width: 1px;
+  background: color-mix(in srgb, var(--line) 70%, transparent);
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 .sidebar-head {
-  padding: 12px;
+  padding: 18px 16px 10px;
 }
 
 .btn-new {
@@ -100,8 +175,8 @@ button { cursor: pointer; }
   align-items: center;
   gap: 10px;
   border: 1px solid var(--line);
-  background: transparent;
-  border-radius: 10px;
+  background: var(--page);
+  border-radius: 12px;
   padding: 10px 12px;
   font-size: 14px;
   font-weight: 500;
@@ -117,16 +192,22 @@ button { cursor: pointer; }
 }
 
 .sidebar-section {
+  padding: 4px 10px 12px;
+}
+
+.sidebar-scroll {
   flex: 1;
   overflow: auto;
-  padding: 4px 8px 12px;
+  min-height: 0;
 }
 
 .sidebar-label {
-  margin: 8px 8px 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
+  margin: 10px 8px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
 .sidebar-empty {
@@ -137,19 +218,77 @@ button { cursor: pointer; }
 }
 
 .chat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   width: 100%;
-  text-align: left;
   border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 13.5px;
+  padding: 2px 4px 2px 4px;
   color: var(--ink);
+  border: 1px solid transparent;
+}
+
+.chat-item-open {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13.5px;
+  padding: 8px 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.chat-item-pin {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.chat-item:hover .chat-item-pin,
+.chat-item.active .chat-item-pin,
+.chat-item-pin.pinned {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .chat-item-pin {
+    opacity: 0.55;
+  }
+}
+
+.chat-item-pin:hover,
+.chat-item-pin.pinned {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .chat-item.active {
-  background: var(--hover);
+  background: color-mix(in srgb, var(--accent) 8%, var(--page));
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--line));
+}
+
+.pin-btn.pinned {
+  color: var(--accent);
+}
+
+.pin-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .sidebar-foot {
@@ -196,22 +335,14 @@ button { cursor: pointer; }
   flex-shrink: 0;
 }
 
-.main {
-  min-width: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg);
-  position: relative;
-}
-
 .topbar {
-  height: 52px;
+  height: 56px;
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 12px;
+  padding: 0 16px;
   flex-shrink: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
 }
 
 .icon-btn {
@@ -230,16 +361,9 @@ button { cursor: pointer; }
   background: transparent;
   border-radius: 10px;
   padding: 8px 10px;
-  font-size: 15px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.caret {
-  color: var(--muted);
-  font-size: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .topbar-spacer { flex: 1; }
@@ -248,24 +372,24 @@ button { cursor: pointer; }
 .thread {
   flex: 1;
   overflow: auto;
-  padding: 0 16px;
+  padding: 0 20px;
 }
 
 .empty-state {
-  max-width: 720px;
+  max-width: 680px;
   margin: 0 auto;
   min-height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 28px;
-  padding: 40px 0 120px;
+  gap: 22px;
+  padding: 36px 0 100px;
 }
 
 .empty-hero {
   text-align: center;
   display: grid;
-  gap: 14px;
+  gap: 10px;
   justify-items: center;
 }
 
@@ -273,13 +397,22 @@ button { cursor: pointer; }
   width: 56px;
   height: 56px;
   font-size: 22px;
-  border-radius: 16px;
+  border-radius: 14px;
+}
+
+.chapter-label {
+  margin: 0;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .empty-hero h1 {
   margin: 0;
-  font-size: clamp(1.75rem, 3.5vw, 2rem);
-  font-weight: 600;
+  font-size: clamp(1.7rem, 3.2vw, 2.1rem);
+  font-weight: 650;
   letter-spacing: -0.03em;
   line-height: 1.2;
 }
@@ -293,8 +426,8 @@ button { cursor: pointer; }
 .starter-card {
   text-align: left;
   border: 1px solid var(--line);
-  background: var(--card);
-  border-radius: 16px;
+  background: color-mix(in srgb, var(--page) 80%, var(--panel));
+  border-radius: 14px;
   padding: 14px 16px;
   display: grid;
   gap: 4px;
@@ -313,10 +446,10 @@ button { cursor: pointer; }
 }
 
 .turns {
-  max-width: 768px;
+  max-width: 760px;
   margin: 0 auto;
   width: 100%;
-  padding: 12px 0 28px;
+  padding: 18px 0 28px;
   display: grid;
   gap: 22px;
 }
@@ -337,13 +470,13 @@ button { cursor: pointer; }
 
 .turn-body.bubble {
   background: var(--bubble);
-  border-radius: 22px;
+  border-radius: 18px;
   padding: 10px 16px;
   max-width: min(100%, 680px);
 }
 
 .turn-text {
-  font-size: 16px;
+  font-size: 15.5px;
   color: var(--ink);
 }
 
@@ -374,8 +507,8 @@ button { cursor: pointer; }
   border-radius: 14px;
   padding: 10px;
   background: var(--card);
-  color: inherit;
   text-decoration: none;
+  color: inherit;
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
@@ -388,33 +521,10 @@ button { cursor: pointer; }
 .book-chip-cover {
   width: 42px;
   height: 58px;
-  border-radius: 8px;
-  background: var(--accent);
+  border-radius: 6px;
   object-fit: cover;
   display: block;
-  flex-shrink: 0;
-}
-
-div.book-chip-cover {
-  opacity: 0.9;
-}
-
-.book-cover,
-.detail-cover,
-.shelf-cover {
-  position: relative;
-  overflow: hidden;
-  display: block;
   background: var(--accent);
-}
-
-.book-cover-image,
-.detail-cover-image,
-.shelf-cover-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
 }
 
 .book-chip-title {
@@ -455,12 +565,12 @@ div.book-chip-cover {
 
 .dock {
   position: relative;
-  padding: 0 16px 14px;
+  padding: 0 18px 16px;
   background: var(--dock-fade);
 }
 
 .dock-inner {
-  max-width: 768px;
+  max-width: 760px;
   margin: 0 auto;
 }
 
@@ -470,9 +580,10 @@ div.book-chip-cover {
   align-items: end;
   gap: 8px;
   background: var(--card);
-  border-radius: 28px;
+  border-radius: 22px;
   padding: 12px 12px 12px 18px;
   box-shadow: var(--composer-shadow);
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
 }
 
 .composer textarea {
@@ -484,7 +595,7 @@ div.book-chip-cover {
   min-height: 28px;
   max-height: 200px;
   padding: 6px 0;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.5;
   color: var(--ink);
 }
@@ -530,10 +641,181 @@ div.book-chip-cover {
   font-size: 13px;
 }
 
+.goodreads-onboarding {
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+  background: color-mix(in srgb, var(--accent) 4%, var(--card));
+  border-radius: 16px;
+  padding: 18px;
+  text-align: left;
+}
+
+.goodreads-onboarding h2 {
+  margin: 2px 0 6px;
+  font-size: 18px;
+}
+
+.goodreads-onboarding p {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.goodreads-onboarding small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent) !important;
+  font-size: 11px !important;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.upload-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.file-input {
+  flex: 1;
+  display: block;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 9px 10px;
+  color: var(--muted);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-input input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.upload-button, .auth-submit {
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 14px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.upload-button:disabled { opacity: .45; cursor: not-allowed; }
+
+.goodreads-signin {
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 4%, var(--card));
+  border-radius: 12px;
+  padding: 11px 16px;
+  font-weight: 600;
+}
+
+.goodreads-summary {
+  display: grid;
+  gap: 3px;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+  background: color-mix(in srgb, var(--accent) 4%, var(--card));
+  border-radius: 10px;
+  margin: 0 8px 8px;
+  padding: 10px;
+  font-size: 12px;
+}
+
+.goodreads-summary span { color: var(--muted); }
+
+.import-screen {
+  max-width: 720px;
+  margin: 52px auto;
+}
+
+.auth-overlay {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.auth-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: #0008;
+}
+
+.auth-modal {
+  position: relative;
+  width: min(100%, 390px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 28px;
+  background: var(--card);
+  box-shadow: 0 20px 60px #0004;
+}
+
+.modal-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  border: 0;
+  background: transparent;
+  font-size: 24px;
+  color: var(--muted);
+}
+
+.auth-form {
+  display: grid;
+  gap: 10px;
+}
+
+.auth-form h2, .auth-form p { margin: 0; }
+.auth-form p { color: var(--muted); font-size: 14px; }
+.auth-form input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.text-button {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.form-error {
+  margin: 0;
+  color: var(--error-ink);
+  font-size: 13px;
+}
+
 @media (max-width: 900px) {
   .chat-app,
   .chat-app.sidebar-closed {
-    grid-template-columns: 1fr;
+    display: block;
+    padding: 0;
+    max-width: none;
+  }
+
+  .chat-app > .sidebar,
+  .chat-app > .main {
+    height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .sidebar {
@@ -543,6 +825,7 @@ div.book-chip-cover {
     transform: translateX(-105%);
     transition: transform 0.2s ease;
     box-shadow: 8px 0 32px #00000033;
+    display: flex !important;
   }
 
   .sidebar.open {
@@ -556,6 +839,11 @@ div.book-chip-cover {
     border: 0;
     background: #00000059;
     z-index: 15;
+  }
+
+  .sidebar::after,
+  .main::before {
+    display: none;
   }
 
   .mobile-new { display: grid; }

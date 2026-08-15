@@ -21,10 +21,53 @@ const STARTERS = [
   },
 ]
 
-function getInitialTheme() {
-  const saved = localStorage.getItem('bookmark-theme')
-  if (saved === 'light' || saved === 'dark') return saved
+function getSystemTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+function getInitialThemePreference() {
+  const saved = localStorage.getItem('bookmark-theme')
+  if (saved === 'light' || saved === 'dark' || saved === 'system') return saved
+  return 'system'
+}
+
+function resolveTheme(preference) {
+  return preference === 'system' ? getSystemTheme() : preference
+}
+
+function nextThemePreference(preference) {
+  if (preference === 'system') return 'light'
+  if (preference === 'light') return 'dark'
+  return 'system'
+}
+
+function themeLabel(preference) {
+  if (preference === 'system') return 'System'
+  if (preference === 'light') return 'Light'
+  return 'Dark'
+}
+
+const CHAPTERS_KEY = 'bookmark-chapters'
+
+function loadChapters() {
+  try {
+    const raw = localStorage.getItem(CHAPTERS_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function saveChapters(chapters) {
+  localStorage.setItem(CHAPTERS_KEY, JSON.stringify(chapters))
+}
+
+function chapterTitleFromMessages(messages) {
+  const firstUser = messages.find((m) => m.role === 'user')
+  if (!firstUser?.content) return 'Untitled chapter'
+  const text = firstUser.content.trim()
+  return text.length > 42 ? `${text.slice(0, 42)}…` : text
 }
 
 function formatReply(text) {
@@ -78,6 +121,36 @@ function IconMenu() {
   )
 }
 
+function IconSystem() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8 20h8M12 17v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function IconPin({ filled = false }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M15 4.5 19.5 9l-3.2.8L12 14.1 9.9 12l4.3-4.3L15 4.5z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+        fill={filled ? 'currentColor' : 'none'}
+      />
+      <path d="m12 14.1-6.6 6.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function ThemeIcon({ preference }) {
+  if (preference === 'system') return <IconSystem />
+  if (preference === 'light') return <IconSun />
+  return <IconMoon />
+}
+
 function getGoodreadsUrl(book) {
   const isbn = typeof book.isbn === 'string' ? book.isbn.trim() : ''
   if (isbn) {
@@ -118,8 +191,11 @@ function BookChip({ book }) {
         <p className="book-chip-title">{book.title}</p>
         <p className="book-chip-author">{book.author}</p>
         <p className="book-chip-meta">
-          {(Number(book.average_rating) || 0).toFixed(1)} ★
-          {book.genres?.[0] ? ` · ${book.genres[0].name}` : ''}
+          {book.genres?.[0]?.name
+            ? book.genres[0].name
+            : book.tags?.[0]
+              ? book.tags[0]
+              : 'Open on Goodreads'}
         </p>
       </div>
     </a>
@@ -198,13 +274,118 @@ function Composer({ input, setInput, onSend, loading, textareaRef }) {
   )
 }
 
+function AuthForm({ onAuthenticated }) {
+  const [mode, setMode] = useState('login')
+  const [form, setForm] = useState({ username: '', password: '', passwordConfirm: '', email: '' })
+  const [error, setError] = useState('')
+
+  const submit = async (event) => {
+    event.preventDefault()
+    setError('')
+    try {
+      if (mode === 'signup') {
+        await api.post('/auth/register/', {
+          username: form.username,
+          email: form.email,
+          password: form.password,
+          password_confirm: form.passwordConfirm,
+        })
+      }
+      const { data } = await api.post('/auth/login/', {
+        username: form.username,
+        password: form.password,
+      })
+      localStorage.setItem('bookmark-access-token', data.access)
+      localStorage.setItem('bookmark-refresh-token', data.refresh)
+      const profile = await api.get('/auth/me/')
+      onAuthenticated(profile.data)
+    } catch (requestError) {
+      const data = requestError.response?.data
+      setError(typeof data === 'object' ? Object.values(data).flat().join(' ') : 'Could not sign you in.')
+    }
+  }
+
+  return (
+    <form className="auth-form" onSubmit={submit}>
+      <h2>{mode === 'login' ? 'Sign in to personalize' : 'Create your account'}</h2>
+      <p>Import Goodreads once and keep your reading taste across devices.</p>
+      <input placeholder="Username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required />
+      {mode === 'signup' && <input type="email" placeholder="Email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />}
+      <input type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength="8" />
+      {mode === 'signup' && <input type="password" placeholder="Confirm password" value={form.passwordConfirm} onChange={(e) => setForm({ ...form, passwordConfirm: e.target.value })} required minLength="8" />}
+      {error && <p className="form-error">{error}</p>}
+      <button className="auth-submit" type="submit">{mode === 'login' ? 'Sign in' : 'Create account'}</button>
+      <button className="text-button" type="button" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>
+        {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
+      </button>
+    </form>
+  )
+}
+
+function GoodreadsOnboarding({ profile, onImported }) {
+  const [file, setFile] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const upload = async () => {
+    if (!file) return
+    setLoading(true)
+    setError('')
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const { data } = await api.post('/goodreads/import/', body)
+      onImported(data)
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || 'Could not import that file.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (profile) {
+    return (
+      <div className="goodreads-summary">
+        <strong>Goodreads taste imported</strong>
+        <span>{profile.imported_rows} books · {profile.favorite_authors?.slice(0, 2).map((item) => item.name).join(', ') || 'taste profile ready'}</span>
+      </div>
+    )
+  }
+
+  return (
+    <section className="goodreads-onboarding">
+      <p className="eyebrow">Make recommendations yours</p>
+      <h2>Import your Goodreads history</h2>
+      <p>In Goodreads, go to <strong>My Books → Import and Export → Export Library</strong>. Download the CSV, then upload it here.</p>
+      <div className="upload-row">
+        <label className="file-input">
+          <input type="file" accept=".csv,text/csv" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          {file ? file.name : 'Choose Goodreads CSV'}
+        </label>
+        <button type="button" className="upload-button" disabled={!file || loading} onClick={upload}>
+          {loading ? 'Importing…' : 'Import'}
+        </button>
+      </div>
+      {error && <p className="form-error">{error}</p>}
+      <small>Your raw CSV is read once and not stored.</small>
+    </section>
+  )
+}
+
 export default function App() {
-  const [theme, setTheme] = useState(getInitialTheme)
+  const [themePreference, setThemePreference] = useState(getInitialThemePreference)
+  const [resolvedTheme, setResolvedTheme] = useState(() => resolveTheme(getInitialThemePreference()))
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [chapters, setChapters] = useState(loadChapters)
+  const [activeChapterId, setActiveChapterId] = useState(null)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [user, setUser] = useState(null)
+  const [goodreadsProfile, setGoodreadsProfile] = useState(null)
+  const [showAuth, setShowAuth] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
   const sendingRef = useRef(false)
@@ -212,9 +393,20 @@ export default function App() {
   messagesRef.current = messages
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('bookmark-theme', theme)
-  }, [theme])
+    localStorage.setItem('bookmark-theme', themePreference)
+    const apply = () => {
+      const next = resolveTheme(themePreference)
+      setResolvedTheme(next)
+      document.documentElement.setAttribute('data-theme', next)
+    }
+    apply()
+
+    if (themePreference !== 'system') return undefined
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => apply()
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [themePreference])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -229,6 +421,46 @@ export default function App() {
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  useEffect(() => {
+    if (!localStorage.getItem('bookmark-access-token')) return
+    Promise.all([api.get('/auth/me/'), api.get('/goodreads/import/')])
+      .then(([profileResponse, importResponse]) => {
+        setUser(profileResponse.data)
+        setGoodreadsProfile(importResponse.data.profile || null)
+      })
+      .catch(() => {
+        localStorage.removeItem('bookmark-access-token')
+        localStorage.removeItem('bookmark-refresh-token')
+      })
+  }, [])
+
+  useEffect(() => {
+    if (loading) return
+    if (messages.length === 0) return
+
+    setActiveChapterId((currentId) => {
+      const id = currentId || crypto.randomUUID()
+      setChapters((prev) => {
+        const existing = prev.find((c) => c.id === id)
+        const nextChapter = {
+          id,
+          title: chapterTitleFromMessages(messages),
+          pinned: existing?.pinned || false,
+          messages,
+          updatedAt: Date.now(),
+        }
+        const rest = prev.filter((c) => c.id !== id)
+        const next = [nextChapter, ...rest].sort((a, b) => {
+          if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+          return b.updatedAt - a.updatedAt
+        })
+        saveChapters(next)
+        return next
+      })
+      return id
+    })
+  }, [messages, loading])
 
   const send = useCallback(async (raw) => {
     const text = (raw ?? '').trim()
@@ -269,14 +501,59 @@ export default function App() {
   }, [])
 
   const newChat = () => {
+    setActiveChapterId(null)
     setMessages([])
     setError('')
     setInput('')
     textareaRef.current?.focus()
   }
 
+  const openChapter = (chapter) => {
+    setActiveChapterId(chapter.id)
+    setMessages(chapter.messages || [])
+    setError('')
+    setInput('')
+    setShowImport(false)
+    if (window.innerWidth < 900) setSidebarOpen(false)
+  }
+
+  const sortChapters = (list) =>
+    [...list].sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+      return b.updatedAt - a.updatedAt
+    })
+
+  const togglePinActive = () => {
+    if (!activeChapterId || messages.length === 0) return
+    setChapters((prev) => {
+      const next = sortChapters(
+        prev.map((c) =>
+          c.id === activeChapterId ? { ...c, pinned: !c.pinned, updatedAt: Date.now() } : c,
+        ),
+      )
+      saveChapters(next)
+      return next
+    })
+  }
+
+  const togglePinChapter = (event, chapterId) => {
+    event.stopPropagation()
+    setChapters((prev) => {
+      const next = sortChapters(
+        prev.map((c) =>
+          c.id === chapterId ? { ...c, pinned: !c.pinned, updatedAt: Date.now() } : c,
+        ),
+      )
+      saveChapters(next)
+      return next
+    })
+  }
+
   const empty = messages.length === 0 && !loading
-  const firstUser = messages.find((m) => m.role === 'user')
+  const activeChapter = chapters.find((c) => c.id === activeChapterId)
+  const isPinned = Boolean(activeChapter?.pinned)
+  const pinnedChapters = chapters.filter((c) => c.pinned)
+  const recentChapters = chapters.filter((c) => !c.pinned)
 
   return (
     <div className={`chat-app ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
@@ -297,30 +574,94 @@ export default function App() {
           </button>
         </div>
 
-        <div className="sidebar-section">
-          <p className="sidebar-label">Today</p>
-          {firstUser ? (
-            <div className="chat-item active">
-              {firstUser.content.slice(0, 42)}{firstUser.content.length > 42 ? '…' : ''}
-            </div>
-          ) : (
-            <p className="sidebar-empty">No chats yet</p>
-          )}
+        <div className="sidebar-scroll">
+          <div className="sidebar-section">
+            <p className="sidebar-label">Bookmarks</p>
+            {pinnedChapters.length === 0 ? (
+              <p className="sidebar-empty">Pin a chat to keep it</p>
+            ) : (
+              pinnedChapters.map((chapter) => (
+                <div
+                  key={chapter.id}
+                  className={`chat-item ${chapter.id === activeChapterId ? 'active' : ''}`}
+                >
+                  <button
+                    type="button"
+                    className="chat-item-open"
+                    onClick={() => openChapter(chapter)}
+                  >
+                    {chapter.title}
+                  </button>
+                  <button
+                    type="button"
+                    className="chat-item-pin pinned"
+                    aria-label="Unpin chapter"
+                    onClick={(e) => togglePinChapter(e, chapter.id)}
+                  >
+                    <IconPin filled />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="sidebar-section">
+            <p className="sidebar-label">Contents</p>
+            {recentChapters.length === 0 ? (
+              <p className="sidebar-empty">No chats yet</p>
+            ) : (
+              recentChapters.map((chapter) => (
+                <div
+                  key={chapter.id}
+                  className={`chat-item ${chapter.id === activeChapterId ? 'active' : ''}`}
+                >
+                  <button
+                    type="button"
+                    className="chat-item-open"
+                    onClick={() => openChapter(chapter)}
+                  >
+                    {chapter.title}
+                  </button>
+                  <button
+                    type="button"
+                    className="chat-item-pin"
+                    aria-label="Pin chapter"
+                    onClick={(e) => togglePinChapter(e, chapter.id)}
+                  >
+                    <IconPin />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         <div className="sidebar-foot">
+          {user ? (
+            <>
+              <button type="button" className="btn-ghost" onClick={() => setShowImport(true)}>
+                Import Goodreads
+              </button>
+              <div className="account-pill">
+                <span className="account-avatar">{(user.first_name || user.username)[0].toUpperCase()}</span>
+                <span>{user.first_name || user.username}</span>
+              </div>
+            </>
+          ) : (
+            <button type="button" className="btn-ghost" onClick={() => setShowAuth(true)}>
+              Sign in to import Goodreads
+            </button>
+          )}
           <button
             type="button"
             className="btn-ghost"
-            onClick={() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))}
+            onClick={() => setThemePreference((t) => nextThemePreference(t))}
+            aria-label={`Theme: ${themeLabel(themePreference)}. Click to change.`}
+            title={`Theme: ${themeLabel(themePreference)} (using ${resolvedTheme})`}
           >
-            {theme === 'light' ? <IconMoon /> : <IconSun />}
-            {theme === 'light' ? 'Dark mode' : 'Light mode'}
+            <ThemeIcon preference={themePreference} />
+            {themeLabel(themePreference)}
           </button>
-          <div className="account-pill">
-            <span className="account-avatar">B</span>
-            <span>Bookmark</span>
-          </div>
         </div>
       </aside>
 
@@ -334,22 +675,56 @@ export default function App() {
           >
             <IconMenu />
           </button>
-          <button type="button" className="model-chip" aria-label="Model">
-            Bookmark <span className="caret">▾</span>
+          <button type="button" className="model-chip" aria-label="Bookmark">
+            Bookmark
           </button>
           <div className="topbar-spacer" />
+          <button
+            type="button"
+            className={`icon-btn pin-btn ${isPinned ? 'pinned' : ''}`}
+            onClick={togglePinActive}
+            disabled={!activeChapterId || messages.length === 0}
+            aria-label={isPinned ? 'Unpin this chapter' : 'Pin this chapter'}
+            title={isPinned ? 'Unpin chapter bookmark' : 'Pin chapter bookmark'}
+          >
+            <IconPin filled={isPinned} />
+          </button>
           <button type="button" className="icon-btn mobile-new" onClick={newChat} aria-label="New chat">
             <IconNew />
           </button>
         </header>
 
         <div className="thread">
-          {empty ? (
+          {showImport && user ? (
+            <div className="import-screen">
+              <GoodreadsOnboarding
+                profile={null}
+                onImported={(data) => {
+                  setGoodreadsProfile(data.profile)
+                  setShowImport(false)
+                }}
+              />
+            </div>
+          ) : empty ? (
             <div className="empty-state">
               <div className="empty-hero">
                 <div className="brand-mark">B</div>
+                <p className="chapter-label">Chapter 1</p>
                 <h1>How can I help you today?</h1>
               </div>
+              {user ? (
+                <GoodreadsOnboarding
+                  profile={goodreadsProfile}
+                  onImported={(data) => {
+                    setGoodreadsProfile(data.profile)
+                    setShowImport(false)
+                  }}
+                />
+              ) : (
+                <button type="button" className="goodreads-signin" onClick={() => setShowAuth(true)}>
+                  Sign in to import Goodreads and personalize your picks
+                </button>
+              )}
               <div className="starter-grid">
                 {STARTERS.map((item) => (
                   <button
@@ -395,11 +770,20 @@ export default function App() {
               textareaRef={textareaRef}
             />
             <p className="fineprint">
-              Bookmark uses Google Gemini when configured. Picks come from its catalog.
+              Powered by Google Gemini + Open Library. Cards open on Goodreads.
             </p>
           </div>
         </div>
       </div>
+      {showAuth && (
+        <div className="auth-overlay">
+          <button className="auth-backdrop" type="button" aria-label="Close" onClick={() => setShowAuth(false)} />
+          <div className="auth-modal">
+            <button className="modal-close" type="button" onClick={() => setShowAuth(false)}>×</button>
+            <AuthForm onAuthenticated={(profile) => { setUser(profile); setShowAuth(false) }} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
