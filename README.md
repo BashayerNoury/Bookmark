@@ -29,7 +29,7 @@ cd frontend && npm install && npm run dev
 
 One service serves both the chat UI and API.
 
-1. Push this branch to GitHub (`testing` or `master`)
+1. Push this branch to GitHub (`stage` or `master`)
 2. Go to [https://render.com](https://render.com) → **New** → **Blueprint**
 3. Connect `BashayerNoury/Bookmark` and use `render.yaml`
 4. Set secret env var **`GEMINI_API_KEY`** (from [Google AI Studio](https://aistudio.google.com/apikey))
@@ -45,7 +45,7 @@ Or manually: **New Web Service** → this repo →:
 
 - App **spins down** when idle; first visit after sleep is slow
 - SQLite on free hosting is fine for demos (data may reset on redeploy)
-- Keep `master` as live if you prefer; deploy from `testing` until ready
+- Keep `master` as live if you prefer; deploy from `stage` until ready
 
 ## Gemini setup
 

@@ -3,7 +3,7 @@ services:
     name: bookmark
     runtime: python
     plan: free
-    branch: testing
+    branch: stage
     buildCommand: chmod +x build.sh && ./build.sh
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
