@@ -78,19 +78,51 @@ function IconMenu() {
   )
 }
 
+function getGoodreadsUrl(book) {
+  const isbn = typeof book.isbn === 'string' ? book.isbn.trim() : ''
+  if (isbn) {
+    return `https://www.goodreads.com/search?q=${encodeURIComponent(isbn)}`
+  }
+  const q = [book.title, book.author].filter(Boolean).join(' ')
+  return `https://www.goodreads.com/search?q=${encodeURIComponent(q)}`
+}
+
 function BookChip({ book }) {
+  const [coverFailed, setCoverFailed] = useState(false)
+  const showCover = Boolean(book.cover_url) && !coverFailed
+  const fallbackColor = book.cover_color || 'var(--accent)'
+
   return (
-    <div className="book-chip">
-      <div className="book-chip-cover" />
+    <a
+      className="book-chip"
+      href={getGoodreadsUrl(book)}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Open ${book.title} on Goodreads`}
+    >
+      {showCover ? (
+        <img
+          className="book-chip-cover"
+          src={book.cover_url}
+          alt=""
+          onError={() => setCoverFailed(true)}
+          onLoad={(e) => {
+            // Open Library returns a 1×1 GIF for missing covers when default=false is omitted
+            if (e.currentTarget.naturalWidth < 2) setCoverFailed(true)
+          }}
+        />
+      ) : (
+        <div className="book-chip-cover" style={{ background: fallbackColor }} />
+      )}
       <div>
         <p className="book-chip-title">{book.title}</p>
         <p className="book-chip-author">{book.author}</p>
         <p className="book-chip-meta">
-          {Number(book.average_rating).toFixed(1)} ★
+          {(Number(book.average_rating) || 0).toFixed(1)} ★
           {book.genres?.[0] ? ` · ${book.genres[0].name}` : ''}
         </p>
       </div>
-    </div>
+    </a>
   )
 }
 
@@ -175,6 +207,9 @@ export default function App() {
   const [error, setError] = useState('')
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
+  const sendingRef = useRef(false)
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -197,11 +232,12 @@ export default function App() {
 
   const send = useCallback(async (raw) => {
     const text = (raw ?? '').trim()
-    if (!text || loading) return
+    if (!text || sendingRef.current) return
+    sendingRef.current = true
 
     setError('')
     setInput('')
-    const history = messages.map(({ role, content }) => ({ role, content }))
+    const history = messagesRef.current.map(({ role, content }) => ({ role, content }))
     const userMsg = { id: crypto.randomUUID(), role: 'user', content: text }
     setMessages((prev) => [...prev, userMsg])
     setLoading(true)
@@ -226,10 +262,11 @@ export default function App() {
       setMessages((prev) => prev.filter((m) => m.id !== userMsg.id))
       setInput(text)
     } finally {
+      sendingRef.current = false
       setLoading(false)
       requestAnimationFrame(() => textareaRef.current?.focus())
     }
-  }, [loading, messages])
+  }, [])
 
   const newChat = () => {
     setMessages([])
@@ -263,9 +300,9 @@ export default function App() {
         <div className="sidebar-section">
           <p className="sidebar-label">Today</p>
           {firstUser ? (
-            <button type="button" className="chat-item active" onClick={() => {}}>
+            <div className="chat-item active">
               {firstUser.content.slice(0, 42)}{firstUser.content.length > 42 ? '…' : ''}
-            </button>
+            </div>
           ) : (
             <p className="sidebar-empty">No chats yet</p>
           )}

@@ -1,44 +1,39 @@
 # Bookmark
 
-ChatGPT-style **AI book recommendation chatbot** — Django REST backend + React chat UI.
+ChatGPT-style **AI book recommendation chatbot** — Django REST + React (Vite).
 
-You open the app and talk to Bookmark. It recommends books from its catalog based on mood, vibe, and what you ask for.
+Recommendations use local catalog matching (not required LLM). Optional `OPENAI_API_KEY` only enriches reply blurbs.
+
+## Cost
+
+| What | Cost |
+|------|------|
+| Running locally | Free |
+| OpenAI explanations (optional) | Only if you set `OPENAI_API_KEY` — billed by OpenAI |
+| Hosting later | Whatever host you choose |
 
 ## Quick start
 
-### Backend
-
 ```bash
+# Backend
 cd /Users/bash/Projects/Bookmark
 source .venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_books
 python manage.py runserver
-```
 
-### Frontend
-
-```bash
+# Frontend
 cd frontend
 npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173) — chat only.
+- App: http://127.0.0.1:5173  
+- API: http://127.0.0.1:8000/api/
 
 ## Chat API
 
-`POST /api/chat/`
+`POST /api/chat/` with `{ "message", "history", "limit" }` → `{ "reply", "books" }`.
 
-```json
-{
-  "message": "cozy fantasy with found family",
-  "history": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}],
-  "limit": 4
-}
-```
-
-Returns `{ "reply": "...", "books": [...] }`.
-
-Optional: set `OPENAI_API_KEY` in `.env` for richer recommendation blurbs.
+Book chips open Goodreads and show cover images from Open Library.

@@ -20,6 +20,7 @@ class Book(models.Model):
     description = models.TextField()
     isbn = models.CharField(max_length=20, blank=True)
     cover_color = models.CharField(max_length=7, default='#4A6FA5')
+    cover_url = models.URLField(blank=True)
     published_year = models.PositiveIntegerField(null=True, blank=True)
     page_count = models.PositiveIntegerField(null=True, blank=True)
     average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0)

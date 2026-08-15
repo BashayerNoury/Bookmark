@@ -17,9 +17,9 @@ class BookListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Book
         fields = (
-            'id', 'title', 'author', 'description', 'cover_color',
+            'id', 'title', 'author', 'description', 'cover_color', 'cover_url',
             'published_year', 'page_count', 'average_rating', 'ratings_count',
-            'genres', 'tags', 'is_bookmarked',
+            'genres', 'tags', 'is_bookmarked', 'isbn',
         )
 
     def get_is_bookmarked(self, obj):
@@ -34,7 +34,7 @@ class BookDetailSerializer(BookListSerializer):
     bookmark_status = serializers.SerializerMethodField()
 
     class Meta(BookListSerializer.Meta):
-        fields = BookListSerializer.Meta.fields + ('isbn', 'user_rating', 'bookmark_status')
+        fields = BookListSerializer.Meta.fields + ('user_rating', 'bookmark_status')
 
     def get_user_rating(self, obj):
         request = self.context.get('request')

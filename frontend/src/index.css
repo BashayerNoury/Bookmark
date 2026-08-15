@@ -52,6 +52,16 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+::selection {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+::-moz-selection {
+  background: var(--accent);
+  color: #ffffff;
+}
+
 button, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 
@@ -129,8 +139,6 @@ button { cursor: pointer; }
 .chat-item {
   width: 100%;
   text-align: left;
-  border: 0;
-  background: transparent;
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 13.5px;
@@ -366,13 +374,47 @@ button { cursor: pointer; }
   border-radius: 14px;
   padding: 10px;
   background: var(--card);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.book-chip:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
 }
 
 .book-chip-cover {
+  width: 42px;
+  height: 58px;
   border-radius: 8px;
   background: var(--accent);
+  object-fit: cover;
+  display: block;
+  flex-shrink: 0;
+}
+
+div.book-chip-cover {
   opacity: 0.9;
-  min-height: 58px;
+}
+
+.book-cover,
+.detail-cover,
+.shelf-cover {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  background: var(--accent);
+}
+
+.book-cover-image,
+.detail-cover-image,
+.shelf-cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .book-chip-title {

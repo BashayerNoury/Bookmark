@@ -4,6 +4,11 @@ from django.utils.text import slugify
 from books.models import Book, Genre
 
 
+def open_library_cover(isbn):
+    # default=false → 404 when missing (so the UI can fall back) instead of a 1×1 GIF
+    return f'https://covers.openlibrary.org/b/isbn/{isbn}-M.jpg?default=false'
+
+
 CATALOG = [
     {
         'title': 'Project Hail Mary',
@@ -12,6 +17,7 @@ CATALOG = [
         'genres': ['Science Fiction'],
         'tags': ['space', 'survival', 'humor', 'adventure'],
         'cover_color': '#1B4F72',
+        'isbn': '9780593135204',
         'published_year': 2021,
         'page_count': 476,
         'average_rating': 4.6,
@@ -24,6 +30,7 @@ CATALOG = [
         'genres': ['Literary Fiction', 'Fantasy'],
         'tags': ['parallel lives', 'philosophy', 'hope', 'reflective'],
         'cover_color': '#5B2C6F',
+        'isbn': '9780525559474',
         'published_year': 2020,
         'page_count': 304,
         'average_rating': 4.2,
@@ -36,6 +43,7 @@ CATALOG = [
         'genres': ['Literary Fiction', 'Science Fiction'],
         'tags': ['ai', 'love', 'literary', 'reflective'],
         'cover_color': '#B9770E',
+        'isbn': '9780593318171',
         'published_year': 2021,
         'page_count': 303,
         'average_rating': 4.1,
@@ -48,6 +56,7 @@ CATALOG = [
         'genres': ['Thriller', 'Mystery'],
         'tags': ['suspense', 'twist', 'psychological', 'crime'],
         'cover_color': '#922B21',
+        'isbn': '9781250301697',
         'published_year': 2019,
         'page_count': 336,
         'average_rating': 4.3,
@@ -60,6 +69,7 @@ CATALOG = [
         'genres': ['Fantasy', 'Historical Fiction'],
         'tags': ['mythology', 'feminist', 'epic', 'magic'],
         'cover_color': '#1A5276',
+        'isbn': '9780316556347',
         'published_year': 2018,
         'page_count': 393,
         'average_rating': 4.5,
@@ -72,6 +82,7 @@ CATALOG = [
         'genres': ['Self-Help'],
         'tags': ['habits', 'productivity', 'inspirational'],
         'cover_color': '#196F3D',
+        'isbn': '9780735211292',
         'published_year': 2018,
         'page_count': 320,
         'average_rating': 4.4,
@@ -84,6 +95,7 @@ CATALOG = [
         'genres': ['Fantasy', 'Literary Fiction'],
         'tags': ['surreal', 'mystery', 'cozy', 'literary'],
         'cover_color': '#2874A6',
+        'isbn': '9781635575637',
         'published_year': 2020,
         'page_count': 272,
         'average_rating': 4.4,
@@ -96,6 +108,7 @@ CATALOG = [
         'genres': ['Memoir', 'Biography'],
         'tags': ['memoir', 'education', 'resilience', 'inspirational'],
         'cover_color': '#6E2C00',
+        'isbn': '9780399590504',
         'published_year': 2018,
         'page_count': 334,
         'average_rating': 4.5,
@@ -108,6 +121,7 @@ CATALOG = [
         'genres': ['Fantasy', 'Romance'],
         'tags': ['cozy', 'found family', 'queer', 'warm'],
         'cover_color': '#1ABC9C',
+        'isbn': '9781250217288',
         'published_year': 2020,
         'page_count': 398,
         'average_rating': 4.6,
@@ -120,6 +134,7 @@ CATALOG = [
         'genres': ['Thriller', 'Mystery'],
         'tags': ['dark', 'marriage', 'suspense', 'twist'],
         'cover_color': '#4A235A',
+        'isbn': '9780307588371',
         'published_year': 2012,
         'page_count': 422,
         'average_rating': 4.1,
@@ -132,6 +147,7 @@ CATALOG = [
         'genres': ['Science Fiction', 'Fantasy'],
         'tags': ['epic', 'politics', 'adventure', 'classic'],
         'cover_color': '#7D6608',
+        'isbn': '9780441172719',
         'published_year': 1965,
         'page_count': 688,
         'average_rating': 4.4,
@@ -144,6 +160,7 @@ CATALOG = [
         'genres': ['Literary Fiction', 'Romance'],
         'tags': ['relationships', 'literary', 'coming of age'],
         'cover_color': '#884EA0',
+        'isbn': '9781984822178',
         'published_year': 2018,
         'page_count': 273,
         'average_rating': 3.9,
@@ -156,6 +173,7 @@ CATALOG = [
         'genres': ['Mystery', 'Humor'],
         'tags': ['cozy', 'crime', 'funny', 'friendship'],
         'cover_color': '#148F77',
+        'isbn': '9781984880987',
         'published_year': 2020,
         'page_count': 368,
         'average_rating': 4.2,
@@ -168,6 +186,7 @@ CATALOG = [
         'genres': ['Nonfiction', 'History'],
         'tags': ['history', 'anthropology', 'thoughtful', 'big ideas'],
         'cover_color': '#CA6F1E',
+        'isbn': '9780062316097',
         'published_year': 2011,
         'page_count': 443,
         'average_rating': 4.3,
@@ -180,6 +199,7 @@ CATALOG = [
         'genres': ['Horror', 'Historical Fiction'],
         'tags': ['gothic', 'dark', 'haunted', 'suspense'],
         'cover_color': '#145A32',
+        'isbn': '9780525620785',
         'published_year': 2020,
         'page_count': 320,
         'average_rating': 4.0,
@@ -192,6 +212,7 @@ CATALOG = [
         'genres': ['Fantasy', 'Romance'],
         'tags': ['fae', 'romance', 'adventure', 'epic'],
         'cover_color': '#9B2335',
+        'isbn': '9781635575569',
         'published_year': 2015,
         'page_count': 419,
         'average_rating': 4.3,
@@ -204,6 +225,7 @@ CATALOG = [
         'genres': ['Essays', 'Nonfiction'],
         'tags': ['essays', 'reflective', 'funny', 'hope'],
         'cover_color': '#21618C',
+        'isbn': '9780525555216',
         'published_year': 2021,
         'page_count': 304,
         'average_rating': 4.5,
@@ -216,6 +238,7 @@ CATALOG = [
         'genres': ['Historical Fiction', 'Romance'],
         'tags': ['hollywood', 'queer', 'secrets', 'glamour'],
         'cover_color': '#C0392B',
+        'isbn': '9781501161940',
         'published_year': 2017,
         'page_count': 400,
         'average_rating': 4.5,
@@ -240,12 +263,16 @@ class Command(BaseCommand):
 
         created = 0
         for entry in CATALOG:
+            isbn = entry.get('isbn', '')
+            cover_url = entry.get('cover_url') or (open_library_cover(isbn) if isbn else '')
             book, was_created = Book.objects.update_or_create(
                 title=entry['title'],
                 author=entry['author'],
                 defaults={
                     'description': entry['description'],
                     'cover_color': entry['cover_color'],
+                    'cover_url': cover_url,
+                    'isbn': isbn,
                     'published_year': entry['published_year'],
                     'page_count': entry['page_count'],
                     'average_rating': entry['average_rating'],
