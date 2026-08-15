@@ -117,5 +117,9 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 
-# Optional OpenAI key for richer natural-language recommendations
+# AI providers
+# Prefer Google Gemini (free tier): https://aistudio.google.com/apikey
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.0-flash')
+# Legacy optional OpenAI blurbs in recommendations.py
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')

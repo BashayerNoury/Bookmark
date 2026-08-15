@@ -395,7 +395,7 @@ export default function App() {
               textareaRef={textareaRef}
             />
             <p className="fineprint">
-              Bookmark can make mistakes. Recommendations are from its catalog.
+              Bookmark uses Google Gemini when configured. Picks come from its catalog.
             </p>
           </div>
         </div>
