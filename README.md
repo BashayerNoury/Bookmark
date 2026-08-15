@@ -1,57 +1,59 @@
 # Bookmark
 
-ChatGPT-style **AI book recommendation chatbot** — Django REST + React (Vite), **Inter** UI font.
+ChatGPT-style **AI book recommendation chatbot** — Django REST + React (Vite), **Inter** UI.
 
-Recommendations are grounded in Bookmark’s catalog. When configured, **Google Gemini** (free tier) writes the conversational reply and picks the best matches.
+Suggestions come from **Google Gemini** (not a local catalog). Covers/ISBNs via **Open Library**. Cards open on **Goodreads**.
 
 ## Cost
 
 | What | Cost |
 |------|------|
-| Running locally | Free |
-| **Google Gemini** (recommended) | Free tier via [Google AI Studio](https://aistudio.google.com/apikey) |
-| Hosting later | Whatever host you choose |
+| Local + Gemini + Open Library | Free |
+| **Live hosting (Render free)** | Free (app sleeps after idle; cold start ~30–60s) |
 
-Without `GEMINI_API_KEY`, chat still works using local catalog matching.
-
-## Quick start
+## Quick start (local)
 
 ```bash
-# Backend
 cd /Users/bash/Projects/Bookmark
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# Put your free Gemini key in .env:
-# GEMINI_API_KEY=your_key_here
+# Add GEMINI_API_KEY=...
 python manage.py migrate
-python manage.py seed_books
 python manage.py runserver
 
-# Frontend
-cd frontend
-npm install
-npm run dev
+cd frontend && npm install && npm run dev
 ```
 
-- App: http://127.0.0.1:5173  
-- API: http://127.0.0.1:8000/api/
+## Deploy live for free (Render)
+
+One service serves both the chat UI and API.
+
+1. Push this branch to GitHub (`testing` or `master`)
+2. Go to [https://render.com](https://render.com) → **New** → **Blueprint**
+3. Connect `BashayerNoury/Bookmark` and use `render.yaml`
+4. Set secret env var **`GEMINI_API_KEY`** (from [Google AI Studio](https://aistudio.google.com/apikey))
+5. Deploy — you’ll get a URL like `https://bookmark-xxxx.onrender.com`
+
+Or manually: **New Web Service** → this repo →:
+
+- **Build:** `chmod +x build.sh && ./build.sh`
+- **Start:** `gunicorn config.wsgi:application --bind 0.0.0.0:$PORT`
+- **Env:** `DEBUG=False`, `ALLOWED_HOSTS=.onrender.com`, `GEMINI_API_KEY=...`, `GEMINI_MODEL=gemini-2.0-flash`
+
+### Free-tier notes
+
+- App **spins down** when idle; first visit after sleep is slow
+- SQLite on free hosting is fine for demos (data may reset on redeploy)
+- Keep `master` as live if you prefer; deploy from `testing` until ready
 
 ## Gemini setup
-
-1. Open https://aistudio.google.com/apikey  
-2. Create an API key  
-3. Add to `.env`:
 
 ```env
 GEMINI_API_KEY=your_key_here
 GEMINI_MODEL=gemini-2.0-flash
 ```
 
-4. Restart `runserver`
-
 ## Chat API
 
-`POST /api/chat/` with `{ "message", "history", "limit" }` → `{ "reply", "books" }`.
-
-Book chips open Goodreads and show Open Library covers.
+`POST /api/chat/` → `{ "reply", "books" }`

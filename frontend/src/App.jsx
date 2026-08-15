@@ -118,8 +118,11 @@ function BookChip({ book }) {
         <p className="book-chip-title">{book.title}</p>
         <p className="book-chip-author">{book.author}</p>
         <p className="book-chip-meta">
-          {(Number(book.average_rating) || 0).toFixed(1)} ★
-          {book.genres?.[0] ? ` · ${book.genres[0].name}` : ''}
+          {book.genres?.[0]?.name
+            ? book.genres[0].name
+            : book.tags?.[0]
+              ? book.tags[0]
+              : 'Open on Goodreads'}
         </p>
       </div>
     </a>
@@ -395,7 +398,7 @@ export default function App() {
               textareaRef={textareaRef}
             />
             <p className="fineprint">
-              Bookmark uses Google Gemini when configured. Picks come from its catalog.
+              Powered by Google Gemini + Open Library. Cards open on Goodreads.
             </p>
           </div>
         </div>

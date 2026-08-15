@@ -124,7 +124,7 @@ class StatsView(APIView):
 
 
 class ChatView(APIView):
-    """ChatGPT-style conversational book recommendations."""
+    """ChatGPT-style conversational book recommendations (Gemini + Open Library)."""
 
     permission_classes = [permissions.AllowAny]
 
@@ -140,10 +140,6 @@ class ChatView(APIView):
         )
         return Response({
             'reply': result['reply'],
-            'books': BookListSerializer(
-                result.get('books') or [],
-                many=True,
-                context={'request': request},
-            ).data,
+            'books': result.get('books') or [],
         })
 
