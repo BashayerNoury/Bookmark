@@ -11,6 +11,7 @@ import hashlib
 import re
 
 from .gemini import gemini_recommend
+from .models import GoodreadsTasteProfile
 from .openlibrary import enrich_book
 
 
@@ -64,7 +65,16 @@ def chat_reply(*, message: str, history=None, user=None, limit: int = 4):
             'books': [],
         }
 
-    ai = gemini_recommend(message=text, history=history, limit=limit)
+    taste_profile = None
+    if user and user.is_authenticated:
+        taste_profile = GoodreadsTasteProfile.objects.filter(user=user).first()
+
+    ai = gemini_recommend(
+        message=text,
+        history=history,
+        taste_profile=taste_profile,
+        limit=limit,
+    )
     if not ai:
         return {
             'reply': (
@@ -85,7 +95,10 @@ def chat_reply(*, message: str, history=None, user=None, limit: int = 4):
         books.append(enriched)
 
     return {
-        'reply': ai['reply'],
+        'reply': (
+            f'Based on your Goodreads history, {ai["reply"]}'
+            if taste_profile else ai['reply']
+        ),
         'books': books,
         'provider': 'gemini',
     }

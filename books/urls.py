@@ -6,6 +6,7 @@ from .views import (
     BookmarkViewSet,
     ChatView,
     GenreViewSet,
+    GoodreadsImportView,
     RatingViewSet,
     RecommendView,
     StatsView,
@@ -19,6 +20,7 @@ router.register('ratings', RatingViewSet, basename='rating')
 
 urlpatterns = [
     path('chat/', ChatView.as_view(), name='chat'),
+    path('goodreads/import/', GoodreadsImportView.as_view(), name='goodreads-import'),
     path('recommend/', RecommendView.as_view(), name='recommend'),
     path('stats/', StatsView.as_view(), name='stats'),
     path('', include(router.urls)),

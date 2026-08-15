@@ -84,3 +84,41 @@ class RecommendationLog(models.Model):
     result_ids = models.JSONField(default=list)
     explanation = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class GoodreadsTasteProfile(models.Model):
+    """A compact, account-owned summary of a Goodreads Library Export."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='goodreads_taste',
+    )
+    favorite_authors = models.JSONField(default=list, blank=True)
+    favorite_shelves = models.JSONField(default=list, blank=True)
+    liked_books = models.JSONField(default=list, blank=True)
+    disliked_books = models.JSONField(default=list, blank=True)
+    reading_history = models.JSONField(default=list, blank=True)
+    rating_summary = models.JSONField(default=dict, blank=True)
+    imported_rows = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'{self.user.username} Goodreads taste'
+
+
+class GoodreadsImport(models.Model):
+    """Audit metadata only: the uploaded CSV itself is never retained."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='goodreads_imports',
+    )
+    filename = models.CharField(max_length=255)
+    imported_rows = models.PositiveIntegerField(default=0)
+    valid_rows = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']

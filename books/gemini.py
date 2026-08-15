@@ -15,7 +15,7 @@ from django.conf import settings
 from .http_util import http_json
 
 
-def gemini_recommend(*, message: str, history=None, limit: int = 4) -> dict | None:
+def gemini_recommend(*, message: str, history=None, taste_profile=None, limit: int = 4) -> dict | None:
     """
     Ask Gemini for book recommendations.
     Returns {'reply': str, 'books': [{'title','author','reason'}, ...]} or None.
@@ -33,6 +33,36 @@ def gemini_recommend(*, message: str, history=None, limit: int = 4) -> dict | No
         if content:
             history_lines.append(f'{role}: {content}')
 
+    taste_context = '(No Goodreads profile imported yet.)'
+    if taste_profile:
+        favorite_authors = ', '.join(
+            item.get('name', '') for item in taste_profile.favorite_authors[:8]
+            if item.get('name')
+        )
+        favorite_shelves = ', '.join(
+            item.get('name', '') for item in taste_profile.favorite_shelves[:8]
+            if item.get('name')
+        )
+        liked_titles = ', '.join(
+            item.get('title', '') for item in taste_profile.liked_books[:15]
+            if item.get('title')
+        )
+        disliked_titles = ', '.join(
+            item.get('title', '') for item in taste_profile.disliked_books[:10]
+            if item.get('title')
+        )
+        read_titles = ', '.join(
+            item.get('title', '') for item in taste_profile.reading_history[:80]
+            if item.get('title')
+        )
+        taste_context = (
+            f'Favorite authors: {favorite_authors or "unknown"}\n'
+            f'Favorite shelves/themes: {favorite_shelves or "unknown"}\n'
+            f'Highly rated books: {liked_titles or "unknown"}\n'
+            f'Lower rated books: {disliked_titles or "unknown"}\n'
+            f'Already read (do not recommend these): {read_titles or "unknown"}'
+        )
+
     prompt = (
         'You are Bookmark, a warm book-recommendation chatbot like ChatGPT.\n'
         'Recommend real, well-known published books that match the reader.\n'
@@ -47,6 +77,7 @@ def gemini_recommend(*, message: str, history=None, limit: int = 4) -> dict | No
         '  ]\n'
         '}\n\n'
         f'Recent chat:\n{chr(10).join(history_lines) or "(none)"}\n\n'
+        f'Reader Goodreads taste:\n{taste_context}\n\n'
         f'Reader message:\n{message}'
     )
 
