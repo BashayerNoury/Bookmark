@@ -7,6 +7,7 @@ Free-tier Generative Language API. Recommends real-world books (not a local cata
 from __future__ import annotations
 
 import json
+import re
 import urllib.error
 import urllib.parse
 
@@ -15,17 +16,72 @@ from django.conf import settings
 from .http_util import http_json
 
 
-def gemini_recommend(*, message: str, history=None, taste_profile=None, limit: int = 4) -> dict | None:
+# Prefer models currently available to new Gemini API keys.
+_FALLBACK_MODELS = (
+    'gemini-3.1-flash-lite',
+    'gemini-flash-latest',
+    'gemini-flash-lite-latest',
+    'gemini-3.5-flash',
+)
+
+
+def _model_candidates(preferred: str) -> list[str]:
+    models = [preferred]
+    for model in _FALLBACK_MODELS:
+        if model not in models:
+            models.append(model)
+    return models
+
+
+def _parse_json_payload(text: str) -> dict:
+    text = (text or '').strip()
+    if not text:
+        raise json.JSONDecodeError('empty', text, 0)
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, dict):
+            return parsed
+    except json.JSONDecodeError:
+        pass
+    match = re.search(r'\{.*\}', text, flags=re.DOTALL)
+    if not match:
+        raise json.JSONDecodeError('no-object', text, 0)
+    parsed = json.loads(match.group(0))
+    if not isinstance(parsed, dict):
+        raise ValueError('parsed payload is not an object')
+    return parsed
+
+
+def _normalize_books(raw_books, limit: int) -> list[dict]:
+    books = []
+    for item in raw_books or []:
+        if not isinstance(item, dict):
+            continue
+        title = (item.get('title') or '').strip()
+        author = (item.get('author') or '').strip()
+        if not title:
+            continue
+        books.append({
+            'title': title,
+            'author': author,
+            'reason': (item.get('reason') or '').strip(),
+        })
+        if len(books) >= limit:
+            break
+    return books
+
+
+def gemini_recommend(*, message: str, history=None, taste_profile=None, limit: int = 4) -> dict:
     """
     Ask Gemini for book recommendations.
-    Returns {'reply': str, 'books': [{'title','author','reason'}, ...]} or None.
+    Returns {'reply': str, 'books': [...]} on success, or {'error': str, ...} on failure.
     """
     api_key = getattr(settings, 'GEMINI_API_KEY', '') or ''
+    preferred = getattr(settings, 'GEMINI_MODEL', 'gemini-3.1-flash-lite') or 'gemini-3.1-flash-lite'
     if not api_key:
-        return None
+        return {'error': 'missing_api_key'}
 
     history = history or []
-    model = getattr(settings, 'GEMINI_MODEL', 'gemini-2.0-flash') or 'gemini-2.0-flash'
     history_lines = []
     for turn in history[-8:]:
         role = turn.get('role', 'user')
@@ -80,12 +136,6 @@ def gemini_recommend(*, message: str, history=None, taste_profile=None, limit: i
         f'Reader Goodreads taste:\n{taste_context}\n\n'
         f'Reader message:\n{message}'
     )
-
-    url = (
-        f'https://generativelanguage.googleapis.com/v1beta/models/'
-        f'{urllib.parse.quote(model)}:generateContent'
-        f'?key={urllib.parse.quote(api_key)}'
-    )
     payload = {
         'contents': [{'role': 'user', 'parts': [{'text': prompt}]}],
         'generationConfig': {
@@ -94,40 +144,45 @@ def gemini_recommend(*, message: str, history=None, taste_profile=None, limit: i
             'responseMimeType': 'application/json',
         },
     }
-    try:
-        data = http_json(url, data=payload, timeout=30)
-        text = data['candidates'][0]['content']['parts'][0]['text']
-        parsed = json.loads(text)
-    except (
-        urllib.error.URLError,
-        TimeoutError,
-        KeyError,
-        IndexError,
-        TypeError,
-        json.JSONDecodeError,
-        ValueError,
-    ):
-        return None
 
-    reply = (parsed.get('reply') or '').strip()
-    raw_books = parsed.get('books') or []
-    books = []
-    for item in raw_books:
-        if not isinstance(item, dict):
+    last_error: dict | None = None
+    for model in _model_candidates(preferred):
+        url = (
+            f'https://generativelanguage.googleapis.com/v1beta/models/'
+            f'{urllib.parse.quote(model)}:generateContent'
+            f'?key={urllib.parse.quote(api_key)}'
+        )
+        try:
+            data = http_json(url, data=payload, timeout=30)
+            text = data['candidates'][0]['content']['parts'][0]['text']
+            parsed = _parse_json_payload(text)
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            KeyError,
+            IndexError,
+            TypeError,
+            json.JSONDecodeError,
+            ValueError,
+        ) as exc:
+            status = getattr(exc, 'code', None)
+            last_error = {
+                'error': 'upstream_failed',
+                'error_type': type(exc).__name__,
+                'http_status': status,
+                'model': model,
+            }
+            # Retry on unavailable / retired models and temporary overload.
+            if status in {404, 429, 503}:
+                continue
+            return last_error
+
+        reply = (parsed.get('reply') or '').strip()
+        books = _normalize_books(parsed.get('books'), limit)
+        if not reply or not books:
+            last_error = {'error': 'invalid_response', 'model': model}
             continue
-        title = (item.get('title') or '').strip()
-        author = (item.get('author') or '').strip()
-        if not title:
-            continue
-        books.append({
-            'title': title,
-            'author': author,
-            'reason': (item.get('reason') or '').strip(),
-        })
-        if len(books) >= limit:
-            break
 
-    if not reply or not books:
-        return None
+        return {'reply': reply, 'books': books, 'model': model}
 
-    return {'reply': reply, 'books': books}
+    return last_error or {'error': 'upstream_failed', 'model': preferred}

@@ -75,12 +75,21 @@ def chat_reply(*, message: str, history=None, user=None, limit: int = 4):
         taste_profile=taste_profile,
         limit=limit,
     )
-    if not ai:
+    if ai.get('error') == 'missing_api_key':
         return {
             'reply': (
                 'AI recommendations need a free Google Gemini API key. '
                 'Add `GEMINI_API_KEY` to your `.env` from https://aistudio.google.com/apikey, '
                 'then restart the server.'
+            ),
+            'books': [],
+            'provider': 'none',
+        }
+    if ai.get('error'):
+        return {
+            'reply': (
+                'Bookmark could not get recommendations from Google Gemini right now. '
+                'Check that `GEMINI_API_KEY` and `GEMINI_MODEL` are valid, then try again.'
             ),
             'books': [],
             'provider': 'none',

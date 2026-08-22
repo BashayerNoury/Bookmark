@@ -28,7 +28,7 @@ No local fake catalog for chat. The AI talks to the real book world; the UI stay
 | **HTTP** | Axios | API client |
 | **Backend** | Django 6 + Django REST Framework | Solid API + admin |
 | **Auth (optional)** | SimpleJWT | Ready for accounts later |
-| **AI** | Google Gemini (`gemini-2.0-flash`) | Free-tier conversational recs |
+| **AI** | Google Gemini (`gemini-3.1-flash-lite`) | Free-tier conversational recs |
 | **Covers / ISBN** | Open Library API | Free metadata |
 | **Outbound links** | Goodreads search | Familiar reader destination |
 | **DB (dev / free host)** | SQLite | Zero setup |
@@ -170,7 +170,7 @@ DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 
 GEMINI_API_KEY=your_key_here
-GEMINI_MODEL=gemini-2.0-flash
+GEMINI_MODEL=gemini-3.1-flash-lite
 ```
 
 Without `GEMINI_API_KEY`, chat will ask you to add one (it will not invent picks from a local catalog).
@@ -193,7 +193,7 @@ One service serves the built React app and the Django API.
 |---------|--------|
 | Build | `chmod +x build.sh && ./build.sh` |
 | Start | `gunicorn config.wsgi:application --bind 0.0.0.0:$PORT` |
-| Env | `DEBUG=False`, `ALLOWED_HOSTS=.onrender.com`, `GEMINI_API_KEY`, `GEMINI_MODEL=gemini-2.0-flash` |
+| Env | `DEBUG=False`, `ALLOWED_HOSTS=.onrender.com`, `GEMINI_API_KEY`, `GEMINI_MODEL=gemini-3.1-flash-lite` |
 
 **Notes:** free tier sleeps when idle; SQLite is fine for demos (may reset on redeploy).
 

@@ -36,5 +36,3 @@ class GoodreadsImportTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertTrue(response.data['imported'])
         self.assertEqual(response.data['profile']['imported_rows'], 1)
-
-# Create your tests here.
